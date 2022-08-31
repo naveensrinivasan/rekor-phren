@@ -64,8 +64,7 @@ type importHashedrekord struct {
 }
 
 type tlog struct {
-	treeID   string `json:"treeID"` //nolint:govet
-	TreeSize int64  `json:"treeSize"`
+	TreeSize int64 `json:"treeSize"`
 	host     string
 }
 

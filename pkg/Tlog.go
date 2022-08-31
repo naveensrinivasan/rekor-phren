@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	//nolint
 	"golang.org/x/crypto/openpgp"
 )
 
@@ -36,6 +37,7 @@ func (t *tlog) Size() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	//nolint
 	defer resp.Body.Close()
 	var log tlog
 	err = json.NewDecoder(resp.Body).Decode(&log)
@@ -51,7 +53,7 @@ func (t *tlog) Entry(index int64) (Entry, error) {
 	if err != nil {
 		return Entry{}, err
 	}
-
+	//nolint
 	defer resp.Body.Close()
 	m := make(map[string]tlogEntry)
 	err = json.NewDecoder(resp.Body).Decode(&m)
@@ -92,11 +94,11 @@ func (t *tlog) Entry(index int64) (Entry, error) {
 		}
 		value.HashedRekord = &rekord
 	case "intoto":
-		rekord, err := handleIntoto(f)
+		intoto, err := handleIntoto(f)
 		if err != nil {
 			return Entry{}, fmt.Errorf("error handling intoto: %w", err)
 		}
-		value.Intoto = &rekord
+		value.Intoto = &intoto
 	default:
 		return value, nil
 	}
@@ -104,13 +106,13 @@ func (t *tlog) Entry(index int64) (Entry, error) {
 }
 
 // handleIntoto handles the intoto entry.
-func handleIntoto(s []byte) (Hashedrekord, error) {
+func handleIntoto(s []byte) (InToTo, error) {
 	var i importIntoto
 	err := json.Unmarshal(s, &i)
 	if err != nil {
-		return Hashedrekord{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
+		return InToTo{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
 	}
-	var e Hashedrekord
+	var e InToTo
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Content.Hash.Algorithm
 	e.Data.Hash.Value = i.Spec.Content.Hash.Value
@@ -118,13 +120,13 @@ func handleIntoto(s []byte) (Hashedrekord, error) {
 	// convert the base64 encoded signature into a byte array for PublicKey.Content
 	publicKey, err := base64.StdEncoding.DecodeString(i.Spec.PublicKey)
 	if err != nil {
-		return Hashedrekord{}, fmt.Errorf("error decoding public key: %w", err)
+		return InToTo{}, fmt.Errorf("error decoding public key: %w", err)
 	}
 	p := string(publicKey)
 	e.Signature.PublicKey = &p
-	x509, err := getx509Identity(string(publicKey))
+	identity, err := getx509Identity(string(publicKey))
 	if err == nil {
-		e.Signature.X509 = x509
+		e.Signature.X509 = identity
 	}
 
 	return e, nil
@@ -149,9 +151,9 @@ func handleHashedRekord(s []byte) (Hashedrekord, error) {
 	}
 	p := string(publicKey)
 	e.Signature.PublicKey = &p
-	x509, err := getx509Identity(string(publicKey))
+	identity, err := getx509Identity(string(publicKey))
 	if err == nil {
-		e.Signature.X509 = x509
+		e.Signature.X509 = identity
 	}
 
 	return e, nil
@@ -189,9 +191,9 @@ func handleRekord(f []byte) (Rekord, error) {
 		}
 		e.Signature.PGP = &pkeyText
 	} else {
-		x509, err := getx509Identity(string(publicKey))
+		identity, err := getx509Identity(string(publicKey))
 		if err == nil {
-			e.Signature.X509 = x509
+			e.Signature.X509 = identity
 		}
 	}
 	return e, nil
