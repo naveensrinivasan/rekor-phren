@@ -2,7 +2,30 @@ package pkg
 
 import "time"
 
-type Importrekord struct {
+type importIntoto struct {
+	APIVersion string `json:"apiVersion"`
+	Spec       struct {
+		Content struct {
+			Hash struct {
+				Algorithm string `json:"algorithm"`
+				Value     string `json:"value"`
+			} `json:"hash"`
+		} `json:"content"`
+		PublicKey string `json:"publicKey"`
+	} `json:"spec"`
+	Kind string `json:"kind"`
+}
+
+// tlogEntry represents a single entry in a TLog.
+type tlogEntry struct {
+	Body           string `json:"body"`
+	IntegratedTime int    `json:"integratedTime"`
+	LogID          string `json:"logID"`
+	LogIndex       int    `json:"logIndex"`
+	Kind           string `json:"kind"`
+	APIVersion     string `json:"apiVersion"`
+}
+type importrekord struct {
 	APIVersion string `json:"apiVersion"`
 	Spec       struct {
 		Data struct {
@@ -21,7 +44,7 @@ type Importrekord struct {
 	} `json:"spec"`
 	Kind string `json:"kind"`
 }
-type ImportHashedrekord struct {
+type importHashedrekord struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Spec       struct {
@@ -40,13 +63,19 @@ type ImportHashedrekord struct {
 	} `json:"spec"`
 }
 
+type tlog struct {
+	treeID   string `json:"treeID"` //nolint:govet
+	TreeSize int64  `json:"treeSize"`
+	host     string
+}
+
 // TLog holds current root hash and size of the merkle tree used to store the log entries.
 type TLog interface {
 	Size() (int64, error)
 	Entry(index int64) (Entry, error)
 }
 
-type Exportrekord struct {
+type Rekord struct {
 	apiVersion string
 	Data       struct {
 		Hash struct {
@@ -77,7 +106,7 @@ type X509 struct {
 	ValidityNotAfter   *time.Time       `json:"validity_not_after,omitempty"`
 	Extensions         *[]X509Extension `json:"extensions,omitempty"`
 }
-type Exporthasedrekord struct {
+type Hashedrekord struct {
 	apiVersion string
 	Data       struct {
 		Hash struct {
@@ -90,45 +119,28 @@ type Exporthasedrekord struct {
 		X509      *X509   `json:"x509,omitempty"`
 	} `json:"signature"`
 }
-
-type ImportIntoto struct {
-	APIVersion string `json:"apiVersion"`
-	Spec       struct {
-		Content struct {
-			Hash struct {
-				Algorithm string `json:"algorithm"`
-				Value     string `json:"value"`
-			} `json:"hash"`
-		} `json:"content"`
-		PublicKey string `json:"publicKey"`
-	} `json:"spec"`
-	Kind string `json:"kind"`
-}
-type tlog struct {
-	treeID   string `json:"treeID"` //nolint:govet
-	TreeSize int64  `json:"treeSize"`
-	host     string
-}
-
-// tlogEntry represents a single entry in a TLog.
-type tlogEntry struct {
-	Body           string       `json:"body"`
-	IntegratedTime int          `json:"integratedTime"`
-	LogID          string       `json:"logID"`
-	LogIndex       int          `json:"logIndex"`
-	Kind           string       `json:"kind"`
-	APIVersion     string       `json:"apiVersion"`
-	Rekord         Exportrekord `json:"rekord"`
+type InToTo struct {
+	apiVersion string
+	Data       struct {
+		Hash struct {
+			Algorithm string `json:"algorithm"`
+			Value     string `json:"value"`
+		} `json:"hash"`
+	} `json:"data"`
+	Signature struct {
+		PublicKey *string `json:"publicKey,omitempty"`
+		X509      *X509   `json:"x509,omitempty"`
+	} `json:"signature"`
 }
 type Entry struct {
-	IntegratedTime int                `json:"integratedTime"`
-	LogID          string             `json:"logID"`
-	LogIndex       int                `json:"logIndex"`
-	Kind           Kind               `json:"kind"`
-	Rekord         *Exportrekord      `json:"rekord,omitempty"`
-	HashedRekord   *Exporthasedrekord `json:"hashedrekord,omitempty"`
-	Intoto         *Exporthasedrekord `json:"intoto,omitempty"`
-	Raw            *string            `json:"raw,omitempty"`
+	IntegratedTime int           `json:"integratedTime"`
+	LogID          string        `json:"logID"`
+	LogIndex       int           `json:"logIndex"`
+	Kind           Kind          `json:"kind"`
+	Rekord         *Rekord       `json:"rekord,omitempty"`
+	HashedRekord   *Hashedrekord `json:"hashedrekord,omitempty"`
+	Intoto         *InToTo       `json:"intoto,omitempty"`
+	Raw            *string       `json:"raw,omitempty"`
 }
 type Kind struct {
 	APIVersion string `json:"apiVersion"`

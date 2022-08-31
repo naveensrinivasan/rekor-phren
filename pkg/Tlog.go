@@ -15,12 +15,15 @@ import (
 
 const defaultHost = "https://rekor.sigstore.dev"
 
+//NewTLog creates an instance of the Tlog.
 func NewTLog(host string) TLog {
 	if host == "" {
 		host = defaultHost
 	}
 	return &tlog{host: host}
 }
+
+//Size returns the size of the last entry.
 func (t *tlog) Size() (int64, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/log", t.host), nil)
 	if err != nil {
@@ -41,6 +44,8 @@ func (t *tlog) Size() (int64, error) {
 	}
 	return log.TreeSize, nil
 }
+
+//Entry returns the entry from the given tlogEntry.
 func (t *tlog) Entry(index int64) (Entry, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", t.host, index))
 	if err != nil {
@@ -99,13 +104,13 @@ func (t *tlog) Entry(index int64) (Entry, error) {
 }
 
 // handleIntoto handles the intoto entry.
-func handleIntoto(s []byte) (Exporthasedrekord, error) {
-	var i ImportIntoto
+func handleIntoto(s []byte) (Hashedrekord, error) {
+	var i importIntoto
 	err := json.Unmarshal(s, &i)
 	if err != nil {
-		return Exporthasedrekord{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
+		return Hashedrekord{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
 	}
-	var e Exporthasedrekord
+	var e Hashedrekord
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Content.Hash.Algorithm
 	e.Data.Hash.Value = i.Spec.Content.Hash.Value
@@ -113,7 +118,7 @@ func handleIntoto(s []byte) (Exporthasedrekord, error) {
 	// convert the base64 encoded signature into a byte array for PublicKey.Content
 	publicKey, err := base64.StdEncoding.DecodeString(i.Spec.PublicKey)
 	if err != nil {
-		return Exporthasedrekord{}, fmt.Errorf("error decoding public key: %w", err)
+		return Hashedrekord{}, fmt.Errorf("error decoding public key: %w", err)
 	}
 	p := string(publicKey)
 	e.Signature.PublicKey = &p
@@ -126,13 +131,13 @@ func handleIntoto(s []byte) (Exporthasedrekord, error) {
 }
 
 // handleHashRekord handles the hashedrekord entry.
-func handleHashedRekord(s []byte) (Exporthasedrekord, error) {
-	var i ImportHashedrekord
+func handleHashedRekord(s []byte) (Hashedrekord, error) {
+	var i importHashedrekord
 	err := json.Unmarshal(s, &i)
 	if err != nil {
-		return Exporthasedrekord{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
+		return Hashedrekord{}, fmt.Errorf("error unmarshalling importrekord: %w", err)
 	}
-	var e Exporthasedrekord
+	var e Hashedrekord
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Data.Hash.Algorithm
 	e.Data.Hash.Value = i.Spec.Data.Hash.Value
@@ -140,7 +145,7 @@ func handleHashedRekord(s []byte) (Exporthasedrekord, error) {
 	// convert the base64 encoded signature into a byte array for PublicKey.Content
 	publicKey, err := base64.StdEncoding.DecodeString(i.Spec.Signature.PublicKey.Content)
 	if err != nil {
-		return Exporthasedrekord{}, fmt.Errorf("error decoding public key: %w", err)
+		return Hashedrekord{}, fmt.Errorf("error decoding public key: %w", err)
 	}
 	p := string(publicKey)
 	e.Signature.PublicKey = &p
@@ -153,14 +158,14 @@ func handleHashedRekord(s []byte) (Exporthasedrekord, error) {
 }
 
 // handleRekord handles the rekord entry
-func handleRekord(f []byte) (Exportrekord, error) {
-	var i Importrekord
+func handleRekord(f []byte) (Rekord, error) {
+	var i importrekord
 	err := json.Unmarshal(f, &i)
 	if err != nil {
-		return Exportrekord{}, fmt.Errorf("error unmarshalling importrekord: %v", err)
+		return Rekord{}, fmt.Errorf("error unmarshalling importrekord: %v", err)
 	}
 
-	var e Exportrekord
+	var e Rekord
 	e.Kind = &i.Kind
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Data.Hash.Algorithm
@@ -171,7 +176,7 @@ func handleRekord(f []byte) (Exportrekord, error) {
 	// convert the base64 encoded signature into a byte array for PublicKey.Content
 	publicKey, err := base64.StdEncoding.DecodeString(i.Spec.Signature.PublicKey.Content)
 	if err != nil {
-		return Exportrekord{}, fmt.Errorf("error decoding public key: %v", err)
+		return Rekord{}, fmt.Errorf("error decoding public key: %v", err)
 	}
 	var pkeyText string
 	p := string(publicKey)
@@ -180,7 +185,7 @@ func handleRekord(f []byte) (Exportrekord, error) {
 	if format == "pgp" {
 		pkeyText, err = getPGPIdentity(string(publicKey))
 		if err != nil {
-			return Exportrekord{}, fmt.Errorf("error getting public key identities: %v", err)
+			return Rekord{}, fmt.Errorf("error getting public key identities: %v", err)
 		}
 		e.Signature.PGP = &pkeyText
 	} else {
