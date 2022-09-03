@@ -1,11 +1,9 @@
-build: lint tidy vendor
+build: lint tidy dirty
 	go build ./...
 lint:
 	golangci-lint run ./...
 tidy:
 	go mod tidy
-vendor:
-	go mod vendor
 dirty:
 	git diff --exit-code
 ci : build dirty
