@@ -73,63 +73,53 @@ type TLog interface {
 	Size() (int64, error)
 	Entry(index int64) (Entry, error)
 }
-
+type RekordData struct {
+	Hash RekorDataHash `json:"hash"`
+}
+type RekorDataHash struct {
+	Algorithm string `json:"algorithm"`
+	Value     string `json:"value"`
+}
+type Signature struct {
+	Format    string `json:"format,omitempty"`
+	PublicKey string `json:"publicKey,omitempty"`
+	PGP       string `json:"pgp,omitempty"`
+	X509      X509   `json:"x509,omitempty"`
+}
 type Rekord struct {
 	apiVersion string
-	Data       struct {
-		Hash struct {
-			Algorithm string `json:"algorithm"`
-			Value     string `json:"value"`
-		} `json:"hash"`
-	} `json:"data"`
-	Signature struct {
-		Format    *string `json:"format,omitempty"`
-		PublicKey *string `json:"publicKey,omitempty"`
-		PGP       *string `json:"pgp,omitempty"`
-		X509      *X509   `json:"x509,omitempty"`
-	} `json:"signature"`
-	Kind *string `json:"kind"`
+	Data       RekordData `json:"data"`
+	Signature  Signature  `json:"signature"`
+	Kind       string     `json:"kind"`
 }
 type X509Extension struct {
-	ID    *string `json:"id,omitempty"`
-	Value *string `json:"value,omitempty"`
+	ID    string `json:"id,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 type X509 struct {
-	Version            *int             `json:"version,omitempty"`
-	SerialNumber       *string          `json:"serial_number,omitempty"`
-	SignatureAlgorithm *string          `json:"signature_algorithm,omitempty"`
-	IssuerOrganization *string          `json:"issuer_organization,omitempty"`
-	IssuerCommonName   *string          `json:"issuer_common_name,omitempty"`
-	ValidityNotBefore  *time.Time       `json:"validity_not_before,omitempty"`
-	ValidityNotAfter   *time.Time       `json:"validity_not_after,omitempty"`
-	Extensions         *[]X509Extension `json:"extensions,omitempty"`
+	Version            int             `json:"version,omitempty"`
+	SerialNumber       string          `json:"serial_number,omitempty"`
+	SignatureAlgorithm string          `json:"signature_algorithm,omitempty"`
+	IssuerOrganization string          `json:"issuer_organization,omitempty"`
+	IssuerCommonName   string          `json:"issuer_common_name,omitempty"`
+	ValidityNotBefore  time.Time       `json:"validity_not_before,omitempty"`
+	ValidityNotAfter   time.Time       `json:"validity_not_after,omitempty"`
+	Extensions         []X509Extension `json:"extensions,omitempty"`
 }
 type Hashedrekord struct {
 	apiVersion string
-	Data       struct {
-		Hash struct {
-			Algorithm string `json:"algorithm"`
-			Value     string `json:"value"`
-		} `json:"hash"`
-	} `json:"data"`
-	Signature struct {
-		PublicKey *string `json:"publicKey,omitempty"`
-		X509      *X509   `json:"x509,omitempty"`
-	} `json:"signature"`
+	Data       RekordData      `json:"data"`
+	Signature  RekordSignature `json:"signature"`
+}
+type RekordSignature struct {
+	PublicKey string `json:"publicKey,omitempty"`
+	X509      *X509  `json:"x509,omitempty"`
 }
 type InToTo struct {
 	apiVersion string
-	Data       struct {
-		Hash struct {
-			Algorithm string `json:"algorithm"`
-			Value     string `json:"value"`
-		} `json:"hash"`
-	} `json:"data"`
-	Signature struct {
-		PublicKey *string `json:"publicKey,omitempty"`
-		X509      *X509   `json:"x509,omitempty"`
-	} `json:"signature"`
+	Data       RekordData      `json:"data"`
+	Signature  RekordSignature `json:"signature"`
 }
 type Entry struct {
 	IntegratedTime int           `json:"integratedTime"`
@@ -139,7 +129,7 @@ type Entry struct {
 	Rekord         *Rekord       `json:"rekord,omitempty"`
 	HashedRekord   *Hashedrekord `json:"hashedrekord,omitempty"`
 	Intoto         *InToTo       `json:"intoto,omitempty"`
-	Raw            *string       `json:"raw,omitempty"`
+	Date           time.Time     `json:"date"`
 }
 type Kind struct {
 	APIVersion string `json:"apiVersion"`

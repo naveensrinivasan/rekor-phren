@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -11,10 +10,28 @@ import (
 	"github.com/naveensrinivasan/rekor-phren/pkg"
 )
 
+var (
+	retry = 5
+)
+
 func main() {
+	var err error
+	e := log.New(os.Stderr, "", 0)
 	x := os.Getenv("START")
 	y := os.Getenv("END")
 	url := os.Getenv("URL")
+	tableName := os.Getenv("TABLE_NAME")
+
+	if data, ok := os.LookupEnv("RETRY"); ok {
+		retry, err = strconv.Atoi(data)
+		if err != nil {
+			panic(fmt.Errorf("RETRY must be an integer %w", err))
+		}
+	}
+	if tableName == "" {
+		//nolint
+		tableName = "rekor_test"
+	}
 	rekor := pkg.NewTLog(url)
 	start := int64(0)
 	end, err := rekor.Size()
@@ -33,30 +50,21 @@ func main() {
 			panic(err)
 		}
 	}
-	for i := start; i < end; i++ {
+
+	for i := start; i <= end; i++ {
 		data, err := rekor.Entry(i)
 		if err != nil {
-			fmt.Println(err)
+			// retrying once more
+			time.Sleep(time.Duration(retry) * time.Second)
+			data, err = rekor.Entry(i)
+			if err != nil {
+				e.Printf("failed to get entry %d: %v, skipping", i, err)
+			}
 		}
-		serialized, err := Marshal(data)
-		if err != nil {
-			fmt.Println(err)
+		e := pkg.Insert(data, tableName)
+		if e != nil {
+			panic(e)
 		}
-		fmt.Println(string(serialized))
 		time.Sleep(time.Second * 5)
 	}
-}
-
-// Marshal is a UTF-8 friendly marshaller.  Go's json.Marshal is not UTF-8
-// friendly because it replaces the valid UTF-8 and JSON characters "&". "<",
-// ">" with the "slash u" unicode escaped forms (e.g. \u0026).  It preemptively
-// escapes for HTML friendliness.  Where text may include any of these
-// characters, json.Marshal should not be used. Playground of Go breaking a
-// title: https://play.golang.org/p/o2hiX0c62oN
-func Marshal(i interface{}) ([]byte, error) {
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(i)
-	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	//nolint
 	"golang.org/x/crypto/openpgp"
@@ -16,7 +17,7 @@ import (
 
 const defaultHost = "https://rekor.sigstore.dev"
 
-//NewTLog creates an instance of the Tlog.
+// NewTLog creates an instance of the Tlog.
 func NewTLog(host string) TLog {
 	if host == "" {
 		host = defaultHost
@@ -24,7 +25,7 @@ func NewTLog(host string) TLog {
 	return &tlog{host: host}
 }
 
-//Size returns the size of the last entry.
+// Size returns the size of the last entry.
 func (t *tlog) Size() (int64, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/log", t.host), nil)
 	if err != nil {
@@ -47,7 +48,7 @@ func (t *tlog) Size() (int64, error) {
 	return log.TreeSize, nil
 }
 
-//Entry returns the entry from the given tlogEntry.
+// Entry returns the entry from the given tlogEntry.
 func (t *tlog) Entry(index int64) (Entry, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", t.host, index))
 	if err != nil {
@@ -102,6 +103,7 @@ func (t *tlog) Entry(index int64) (Entry, error) {
 	default:
 		return value, nil
 	}
+	value.Date = time.Now()
 	return value, nil
 }
 
@@ -123,7 +125,7 @@ func handleIntoto(s []byte) (InToTo, error) {
 		return InToTo{}, fmt.Errorf("error decoding public key: %w", err)
 	}
 	p := string(publicKey)
-	e.Signature.PublicKey = &p
+	e.Signature.PublicKey = p
 	identity, err := getx509Identity(string(publicKey))
 	if err == nil {
 		e.Signature.X509 = identity
@@ -150,7 +152,7 @@ func handleHashedRekord(s []byte) (Hashedrekord, error) {
 		return Hashedrekord{}, fmt.Errorf("error decoding public key: %w", err)
 	}
 	p := string(publicKey)
-	e.Signature.PublicKey = &p
+	e.Signature.PublicKey = p
 	identity, err := getx509Identity(string(publicKey))
 	if err == nil {
 		e.Signature.X509 = identity
@@ -168,12 +170,12 @@ func handleRekord(f []byte) (Rekord, error) {
 	}
 
 	var e Rekord
-	e.Kind = &i.Kind
+	e.Kind = i.Kind
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Data.Hash.Algorithm
 	e.Data.Hash.Value = i.Spec.Data.Hash.Value
 
-	e.Signature.Format = &i.Spec.Signature.Format
+	e.Signature.Format = i.Spec.Signature.Format
 
 	// convert the base64 encoded signature into a byte array for PublicKey.Content
 	publicKey, err := base64.StdEncoding.DecodeString(i.Spec.Signature.PublicKey.Content)
@@ -183,17 +185,17 @@ func handleRekord(f []byte) (Rekord, error) {
 	var pkeyText string
 	p := string(publicKey)
 	format := i.Spec.Signature.Format
-	e.Signature.PublicKey = &p
+	e.Signature.PublicKey = p
 	if format == "pgp" {
 		pkeyText, err = getPGPIdentity(string(publicKey))
 		if err != nil {
 			return Rekord{}, fmt.Errorf("error getting public key identities: %v", err)
 		}
-		e.Signature.PGP = &pkeyText
+		e.Signature.PGP = pkeyText
 	} else {
 		identity, err := getx509Identity(string(publicKey))
 		if err == nil {
-			e.Signature.X509 = identity
+			e.Signature.X509 = *identity
 		}
 	}
 	return e, nil
@@ -262,19 +264,19 @@ func getx509Identity(publicKey string) (*X509, error) {
 		id := e.Id.String()
 		value := string(e.Value)
 		extension = append(extension, X509Extension{
-			ID:    &id,
-			Value: &value,
+			ID:    id,
+			Value: value,
 		})
 	}
 	certificate := X509{
-		Version:            &cert.Version,
-		SerialNumber:       &serialNumber,
-		SignatureAlgorithm: &signatureAlgorithm,
-		IssuerOrganization: &cert.Issuer.Organization[0],
-		IssuerCommonName:   &cert.Issuer.CommonName,
-		ValidityNotBefore:  &cert.NotBefore,
-		ValidityNotAfter:   &cert.NotAfter,
-		Extensions:         &extension,
+		Version:            cert.Version,
+		SerialNumber:       serialNumber,
+		SignatureAlgorithm: signatureAlgorithm,
+		IssuerOrganization: cert.Issuer.Organization[0],
+		IssuerCommonName:   cert.Issuer.CommonName,
+		ValidityNotBefore:  cert.NotBefore,
+		ValidityNotAfter:   cert.NotAfter,
+		Extensions:         extension,
 	}
 	return &certificate, nil
 }
