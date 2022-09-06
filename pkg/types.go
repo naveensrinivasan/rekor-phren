@@ -84,13 +84,12 @@ type Signature struct {
 	Format    string `json:"format,omitempty"`
 	PublicKey string `json:"publicKey,omitempty"`
 	PGP       string `json:"pgp,omitempty"`
-	X509      X509   `json:"x509,omitempty"`
+	X509      *X509  `json:"x509,omitempty"`
 }
 type Rekord struct {
 	apiVersion string
 	Data       RekordData `json:"data"`
 	Signature  Signature  `json:"signature"`
-	Kind       string     `json:"kind"`
 }
 type X509Extension struct {
 	ID    string `json:"id,omitempty"`
@@ -103,8 +102,8 @@ type X509 struct {
 	SignatureAlgorithm string          `json:"signature_algorithm,omitempty"`
 	IssuerOrganization string          `json:"issuer_organization,omitempty"`
 	IssuerCommonName   string          `json:"issuer_common_name,omitempty"`
-	ValidityNotBefore  time.Time       `json:"validity_not_before,omitempty"`
-	ValidityNotAfter   time.Time       `json:"validity_not_after,omitempty"`
+	ValidityNotBefore  *time.Time      `json:"validity_not_before,omitempty"`
+	ValidityNotAfter   *time.Time      `json:"validity_not_after,omitempty"`
 	Extensions         []X509Extension `json:"extensions,omitempty"`
 }
 type Hashedrekord struct {

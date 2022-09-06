@@ -35,7 +35,7 @@ func (b bucket) UpdateBucket(item Entry) error {
 	if err != nil {
 		return fmt.Errorf("storage.NewClient: %w", err)
 	}
-	path := fmt.Sprintf("%s/%d/entry.json", b.Name, item.LogIndex)
+	path := fmt.Sprintf("%d/entry.json", item.LogIndex)
 	wc := client.Bucket(b.Name).Object(path).NewWriter(ctx)
 	wc.ContentType = "application/json"
 	json, err := Marshal(item)
@@ -45,7 +45,7 @@ func (b bucket) UpdateBucket(item Entry) error {
 	if _, err := wc.Write(json); err != nil {
 		return fmt.Errorf("Object(%q).Writer: %w", path, err)
 	}
-	return nil
+	return wc.Close()
 }
 
 // Marshal is a UTF-8 friendly marshaller.  Go's json.Marshal is not UTF-8

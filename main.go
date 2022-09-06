@@ -16,7 +16,7 @@ var retry = 5
 var e *log.Logger
 
 func main() {
-	e = log.New(os.Stderr, "", 0)
+	e = log.New(os.Stdout, "", 0)
 	var wg sync.WaitGroup
 	var err error
 	x := os.Getenv("START")
@@ -33,9 +33,9 @@ func main() {
 	}
 	if bucketName == "" {
 		//nolint
-		bucketName = "rekor-phren-test"
+		bucketName = "openssf-rekor-test"
 	}
-	_, err2 := pkg.NewBucket(bucketName)
+	bucket, err2 := pkg.NewBucket(bucketName)
 	if err2 != nil {
 		panic(err2)
 	}
@@ -70,13 +70,13 @@ func main() {
 	}
 
 	for i := start; i <= end; i++ {
-		GetRekorEntry(rekor, i, &wg, tableName)
+		GetRekorEntry(rekor, i, &wg, tableName, bucket)
 		time.Sleep(time.Second * 5)
 	}
 }
 
 // GetRekorEntry gets the rekor entry and updates the table
-func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string) {
+func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string, bucket pkg.Bucket) {
 	data, err := rekor.Entry(i)
 	if retry > 0 && err != nil {
 		// retrying once more
@@ -86,6 +86,7 @@ func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string
 			handleErr(err)
 		}
 	}
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		err := pkg.Insert(data, tableName)
@@ -93,7 +94,13 @@ func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string
 			handleErr(err)
 		}
 	}()
-	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := bucket.UpdateBucket(data)
+		if err != nil {
+			handleErr(err)
+		}
+	}()
 	wg.Wait()
 }
 

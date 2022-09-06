@@ -170,7 +170,6 @@ func handleRekord(f []byte) (Rekord, error) {
 	}
 
 	var e Rekord
-	e.Kind = i.Kind
 	e.apiVersion = i.APIVersion
 	e.Data.Hash.Algorithm = i.Spec.Data.Hash.Algorithm
 	e.Data.Hash.Value = i.Spec.Data.Hash.Value
@@ -195,7 +194,7 @@ func handleRekord(f []byte) (Rekord, error) {
 	} else {
 		identity, err := getx509Identity(string(publicKey))
 		if err == nil {
-			e.Signature.X509 = *identity
+			e.Signature.X509 = identity
 		}
 	}
 	return e, nil
@@ -274,8 +273,8 @@ func getx509Identity(publicKey string) (*X509, error) {
 		SignatureAlgorithm: signatureAlgorithm,
 		IssuerOrganization: cert.Issuer.Organization[0],
 		IssuerCommonName:   cert.Issuer.CommonName,
-		ValidityNotBefore:  cert.NotBefore,
-		ValidityNotAfter:   cert.NotAfter,
+		ValidityNotBefore:  &cert.NotBefore,
+		ValidityNotAfter:   &cert.NotAfter,
 		Extensions:         extension,
 	}
 	return &certificate, nil
