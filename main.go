@@ -5,22 +5,40 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/naveensrinivasan/rekor-phren/pkg"
 )
 
-var (
-	retry = 5
-)
+var retry = 5
+
+var e *log.Logger
 
 func main() {
+	e = log.New(os.Stderr, "", 0)
+	var wg sync.WaitGroup
 	var err error
-	e := log.New(os.Stderr, "", 0)
 	x := os.Getenv("START")
 	y := os.Getenv("END")
 	url := os.Getenv("URL")
 	tableName := os.Getenv("TABLE_NAME")
+	bucketName := os.Getenv("BUCKET_NAME")
+	enableRetry := os.Getenv("ENABLE_RETRY")
+	if enableRetry != "" {
+		retry, err = strconv.Atoi(enableRetry)
+		if err != nil {
+			e.Println(err)
+		}
+	}
+	if bucketName == "" {
+		//nolint
+		bucketName = "rekor-phren-test"
+	}
+	_, err2 := pkg.NewBucket(bucketName)
+	if err2 != nil {
+		panic(err2)
+	}
 
 	if data, ok := os.LookupEnv("RETRY"); ok {
 		retry, err = strconv.Atoi(data)
@@ -52,19 +70,36 @@ func main() {
 	}
 
 	for i := start; i <= end; i++ {
-		data, err := rekor.Entry(i)
-		if err != nil {
-			// retrying once more
-			time.Sleep(time.Duration(retry) * time.Second)
-			data, err = rekor.Entry(i)
-			if err != nil {
-				e.Printf("failed to get entry %d: %v, skipping", i, err)
-			}
-		}
-		e := pkg.Insert(data, tableName)
-		if e != nil {
-			panic(e)
-		}
+		GetRekorEntry(rekor, i, &wg, tableName)
 		time.Sleep(time.Second * 5)
+	}
+}
+
+// GetRekorEntry gets the rekor entry and updates the table
+func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string) {
+	data, err := rekor.Entry(i)
+	if retry > 0 && err != nil {
+		// retrying once more
+		time.Sleep(5 * time.Second)
+		data, err = rekor.Entry(i)
+		if err != nil {
+			handleErr(err)
+		}
+	}
+	go func() {
+		defer wg.Done()
+		err := pkg.Insert(data, tableName)
+		if err != nil {
+			handleErr(err)
+		}
+	}()
+	wg.Add(1)
+	wg.Wait()
+}
+
+// handlerErr handles the error
+func handleErr(err error) {
+	if err != nil {
+		e.Printf("failed to update table %v, skipping", err)
 	}
 }
