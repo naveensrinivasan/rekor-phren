@@ -65,7 +65,7 @@ func UpdateTableSchema(entry Entry, dataset string) error {
 		Schema: s,
 	}
 	if _, err := tableRef.Update(ctx, update, ""); err != nil {
-		return err
+		return fmt.Errorf("tableRef.Update: %w", err)
 	}
 	return nil
 }

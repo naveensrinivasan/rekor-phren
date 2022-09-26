@@ -273,8 +273,8 @@ func getx509Identity(publicKey string) (*X509, error) {
 		SignatureAlgorithm: signatureAlgorithm,
 		IssuerOrganization: cert.Issuer.Organization[0],
 		IssuerCommonName:   cert.Issuer.CommonName,
-		ValidityNotBefore:  &cert.NotBefore,
-		ValidityNotAfter:   &cert.NotAfter,
+		ValidityNotBefore:  cert.NotBefore,
+		ValidityNotAfter:   cert.NotAfter,
 		Extensions:         extension,
 	}
 	return &certificate, nil

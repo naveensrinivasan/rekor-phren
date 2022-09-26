@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/naveensrinivasan/rekor-phren/pkg"
 	"log"
 	"os"
 	"strconv"
 	"sync"
-	"time"
-
-	"github.com/naveensrinivasan/rekor-phren/pkg"
 )
 
 var retry = 5
@@ -71,7 +69,6 @@ func main() {
 
 	for i := start; i <= end; i++ {
 		GetRekorEntry(rekor, i, &wg, tableName, bucket)
-		time.Sleep(time.Second * 5)
 	}
 }
 
@@ -80,27 +77,26 @@ func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string
 	data, err := rekor.Entry(i)
 	if retry > 0 && err != nil {
 		// retrying once more
-		time.Sleep(5 * time.Second)
 		data, err = rekor.Entry(i)
 		if err != nil {
 			handleErr(err)
 		}
 	}
 	wg.Add(2)
-	go func() {
+	go func(i int64) {
 		defer wg.Done()
 		err := pkg.Insert(data, tableName)
 		if err != nil {
-			handleErr(err)
+			handleErr(fmt.Errorf("failed to insert entry %d %w", i, err))
 		}
-	}()
-	go func() {
+	}(i)
+	go func(i int64) {
 		defer wg.Done()
 		err := bucket.UpdateBucket(data)
 		if err != nil {
-			handleErr(err)
+			handleErr(fmt.Errorf("failed to update bucket %d %w", i, err))
 		}
-	}()
+	}(i)
 	wg.Wait()
 }
 
