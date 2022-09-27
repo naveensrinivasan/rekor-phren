@@ -67,13 +67,12 @@ func main() {
 		}
 	}
 
-	}
 	for i := start; i <= end; i++ {
 		//parallelize the requests for 10 entries
 		if i%10 == 0 {
 			wg.Wait()
 		}
-		go func(){
+		go func() {
 			defer wg.Done()
 			GetRekorEntry(rekor, i, &wg, tableName, bucket)
 		}()
