@@ -68,14 +68,15 @@ func main() {
 	}
 
 	for i := start; i <= end; i++ {
-		//parallelize the requests for 10 entries
+		// parallelize the requests for 10 entries
 		if i%10 == 0 {
 			wg.Wait()
 		}
-		go func() {
+		wg.Add(1)
+		go func(j int64) {
 			defer wg.Done()
-			GetRekorEntry(rekor, i, &wg, tableName, bucket)
-		}()
+			GetRekorEntry(rekor, j, &wg, tableName, bucket)
+		}(i)
 	}
 }
 
