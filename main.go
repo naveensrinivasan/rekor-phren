@@ -72,7 +72,7 @@ func main() {
 		}
 	}
 	go produce(start, end)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 		go func() {
 			for i := range tasks {
 				GetRekorEntry(rekor, i, tableName, bucket)
