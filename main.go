@@ -131,7 +131,7 @@ func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket)
 			handleErr(fmt.Errorf("failed to update bucket %d %w", i, err))
 		}
 	}(i)
-	if i%100 == 0 {
+	if i%1000 == 0 {
 		fmt.Println("Finished", i)
 	}
 	wg.Wait()
