@@ -54,7 +54,7 @@ func main() {
 	rekor = pkg.NewTLog(url)
 	start := int64(0)
 	end, err := rekor.Size()
-	counter := 5
+	counter := 10
 	if err != nil {
 		panic(err)
 	}
