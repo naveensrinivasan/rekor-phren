@@ -268,17 +268,20 @@ func getx509Identity(publicKey string) (*X509, error) {
 			ID:    id,
 			Value: value,
 		})
-
 	}
+
 	certificate := X509{
 		Version:            cert.Version,
 		SerialNumber:       serialNumber,
 		SignatureAlgorithm: signatureAlgorithm,
-		IssuerOrganization: cert.Issuer.Organization[0],
 		IssuerCommonName:   cert.Issuer.CommonName,
 		ValidityNotBefore:  cert.NotBefore,
 		ValidityNotAfter:   cert.NotAfter,
 		Extensions:         extension,
 	}
+	if len(cert.Issuer.Organization) > 0 {
+		certificate.IssuerOrganization = cert.Issuer.Organization[0]
+	}
+
 	return &certificate, nil
 }
