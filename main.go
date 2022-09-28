@@ -21,6 +21,8 @@ func main() {
 	var err error
 	x := os.Getenv("START")
 	y := os.Getenv("END")
+	z := os.Getenv("CONCURRENCY")
+
 	fmt.Println(x, y)
 	url := os.Getenv("URL")
 	tableName = os.Getenv("TABLE_NAME")
@@ -55,6 +57,12 @@ func main() {
 	start := int64(0)
 	end, err := rekor.Size()
 	counter := 10
+	if z != "" {
+		counter, err = strconv.Atoi(z)
+		if err != nil {
+			panic(err)
+		}
+	}
 	if err != nil {
 		panic(err)
 	}
