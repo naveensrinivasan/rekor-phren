@@ -12,8 +12,6 @@ import (
 var retry = 5
 
 var e *log.Logger
-var done = make(chan bool)
-var tasks = make(chan int64)
 var tableName string
 var bucket pkg.Bucket
 var rekor pkg.TLog
@@ -56,6 +54,7 @@ func main() {
 	rekor = pkg.NewTLog(url)
 	start := int64(0)
 	end, err := rekor.Size()
+	counter := 5
 	if err != nil {
 		panic(err)
 	}
@@ -71,22 +70,31 @@ func main() {
 			panic(err)
 		}
 	}
-	go produce(start, end)
-	for i := 0; i < 5; i++ {
+	// three consumers
+	wg := sync.WaitGroup{}
+	wg.Add(counter)
+	var ch = make(chan int64)
+
+	//consumer
+	for i := 0; i < counter; i++ {
 		go func() {
-			for i := range tasks {
+			for i := range ch {
 				GetRekorEntry(rekor, i, tableName, bucket)
 			}
+			wg.Done()
 		}()
 	}
-	<-done
-}
-func produce(start, end int64) {
-	for i := start; i <= end; i++ {
-		tasks <- i
-		// parallelize the requests for 10 entries
-	}
-	close(tasks)
+
+	//producer
+	go func() {
+		for i := start; i <= end; i++ {
+			ch <- i
+		}
+		close(ch)
+	}()
+
+	wg.Wait()
+
 }
 
 // GetRekorEntry gets the rekor entry and updates the table
