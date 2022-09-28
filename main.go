@@ -12,15 +12,20 @@ import (
 var retry = 5
 
 var e *log.Logger
+var done = make(chan bool)
+var tasks = make(chan int64)
+var tableName string
+var bucket pkg.Bucket
+var rekor pkg.TLog
 
 func main() {
 	e = log.New(os.Stdout, "", 0)
-	var wg sync.WaitGroup
 	var err error
 	x := os.Getenv("START")
 	y := os.Getenv("END")
+	fmt.Println(x, y)
 	url := os.Getenv("URL")
-	tableName := os.Getenv("TABLE_NAME")
+	tableName = os.Getenv("TABLE_NAME")
 	bucketName := os.Getenv("BUCKET_NAME")
 	enableRetry := os.Getenv("ENABLE_RETRY")
 	if enableRetry != "" {
@@ -33,9 +38,9 @@ func main() {
 		//nolint
 		bucketName = "openssf-rekor-test"
 	}
-	bucket, err2 := pkg.NewBucket(bucketName)
-	if err2 != nil {
-		panic(err2)
+	bucket, err = pkg.NewBucket(bucketName)
+	if err != nil {
+		panic(err)
 	}
 
 	if data, ok := os.LookupEnv("RETRY"); ok {
@@ -48,7 +53,7 @@ func main() {
 		//nolint
 		tableName = "rekor_test"
 	}
-	rekor := pkg.NewTLog(url)
+	rekor = pkg.NewTLog(url)
 	start := int64(0)
 	end, err := rekor.Size()
 	if err != nil {
@@ -66,15 +71,27 @@ func main() {
 			panic(err)
 		}
 	}
-
-	for i := start; i <= end; i++ {
-		// parallelize the requests for 10 entries
-		GetRekorEntry(rekor, i, &wg, tableName, bucket)
+	go produce(start, end)
+	for i := 0; i < 10; i++ {
+		go func() {
+			for i := range tasks {
+				GetRekorEntry(rekor, i, tableName, bucket)
+			}
+		}()
 	}
+	<-done
+}
+func produce(start, end int64) {
+	for i := start; i <= end; i++ {
+		tasks <- i
+		// parallelize the requests for 10 entries
+	}
+	close(tasks)
 }
 
 // GetRekorEntry gets the rekor entry and updates the table
-func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string, bucket pkg.Bucket) {
+func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket) {
+	var wg sync.WaitGroup
 	data, err := rekor.Entry(i)
 	if retry > 0 && err != nil {
 		// retrying once more
@@ -98,6 +115,9 @@ func GetRekorEntry(rekor pkg.TLog, i int64, wg *sync.WaitGroup, tableName string
 			handleErr(fmt.Errorf("failed to update bucket %d %w", i, err))
 		}
 	}(i)
+	if i%100 == 0 {
+		fmt.Println("Finished", i)
+	}
 	wg.Wait()
 }
 
