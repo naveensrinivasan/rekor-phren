@@ -263,7 +263,9 @@ func getx509Identity(publicKey string) (*X509, error) {
 		id := e.Id.String()
 		value := string(e.Value)
 		// remove the first 4 bytes from the value
-		value = value[4:]
+		if len(value) > 4 {
+			value = value[4:]
+		}
 		extension = append(extension, X509Extension{
 			ID:    id,
 			Value: value,
