@@ -56,6 +56,7 @@ func main() {
 	rekor = pkg.NewTLog(url)
 	start := int64(0)
 	end, err := rekor.Size()
+	fmt.Println("end", end)
 	counter := 10
 	if z != "" {
 		counter, err = strconv.Atoi(z)
