@@ -3,7 +3,7 @@ module github.com/naveensrinivasan/rekor-phren
 go 1.18
 
 require (
-	cloud.google.com/go/bigquery v1.39.0
+	cloud.google.com/go/bigquery v1.42.0
 	cloud.google.com/go/storage v1.27.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 )
