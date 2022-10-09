@@ -3,89 +3,139 @@ package main
 import (
 	"fmt"
 	"github.com/naveensrinivasan/rekor-phren/pkg"
+	"github.com/urfave/cli/v2"
 	"log"
 	"os"
-	"strconv"
 	"sync"
 )
 
-var retry = 5
-
-var e *log.Logger
-var tableName string
-var bucket pkg.Bucket
-var rekor pkg.TLog
+var (
+	retry      = 5
+	e          *log.Logger
+	tableName  = "rekor_test"
+	bucket     pkg.Bucket
+	rekor      pkg.TLog
+	url        string
+	bucketName = "openssf-rekor-test"
+)
 
 func main() {
+	start, end, concurrency := 0, 0, 10
 	e = log.New(os.Stdout, "", 0)
-	var err error
-	x := os.Getenv("START")
-	y := os.Getenv("END")
-	z := os.Getenv("CONCURRENCY")
 
-	fmt.Println(x, y)
-	url := os.Getenv("URL")
-	tableName = os.Getenv("TABLE_NAME")
-	bucketName := os.Getenv("BUCKET_NAME")
-	enableRetry := os.Getenv("ENABLE_RETRY")
-	if enableRetry != "" {
-		retry, err = strconv.Atoi(enableRetry)
-		if err != nil {
-			e.Println(err)
-		}
+	app := &cli.App{
+		Name:  "rekor-phren is a tool to update the BigQuery table and the bucket with the rekor entries",
+		Usage: "rekor-phren update -u <rekor url> -b <bucket name> -t <table name> -s <start> -e <end> -c <concurrency>",
+		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:        "start-index",
+				DefaultText: "0",
+				Aliases:     []string{"s"},
+				Value:       0,
+				Destination: &start,
+				EnvVars: []string{
+					"PHREN_START",
+				},
+			},
+			&cli.IntFlag{
+				Name:        "end-index",
+				Aliases:     []string{"e"},
+				Destination: &end,
+				EnvVars: []string{
+					"PHREN_END",
+				},
+			},
+			&cli.IntFlag{
+				Name:        "concurrency-level-update",
+				Aliases:     []string{"c"},
+				Value:       concurrency,
+				Destination: &concurrency,
+				DefaultText: "10",
+				EnvVars: []string{
+					"PHREN_CONCURRENCY",
+				},
+			},
+			&cli.StringFlag{
+				Name:        "rekor-url",
+				Aliases:     []string{"u"},
+				Value:       url,
+				DefaultText: "https://api.rekor.sigstore.dev",
+				Destination: &url,
+				EnvVars: []string{
+					"REKOR_URL",
+				},
+			},
+			&cli.StringFlag{
+				Name:        "bigquery-table-name",
+				Aliases:     []string{"t"},
+				Value:       tableName,
+				Destination: &tableName,
+				EnvVars: []string{
+					"PHREN_TABLE",
+				},
+			},
+			&cli.StringFlag{
+				Name:        "gcs-bucket-name",
+				Aliases:     []string{"b"},
+				DefaultText: "openssf-rekor-test",
+				Value:       bucketName,
+				Destination: &bucketName,
+				EnvVars: []string{
+					"PHREN_BUCKET",
+				},
+			},
+			&cli.IntFlag{
+				Name:        "number-of-retries",
+				Aliases:     []string{"r"},
+				Value:       retry,
+				DefaultText: "5",
+				Destination: &retry,
+				EnvVars: []string{
+					"PHREN_RETRY",
+				},
+			},
+		},
+		Commands: []*cli.Command{
+			{
+				Name:        "update",
+				Usage:       "update -u <rekor url> -b <bucket name> -t <table name> -s <start> -e <end> -c <concurrency>",
+				Description: "This command updates the BigQuery table and the bucket with the rekor entries. ",
+				Action: func(c *cli.Context) error {
+					update(end, concurrency, start)
+					return nil
+				},
+			},
+		},
 	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func update(end int, concurrency int, start int) error {
+	var err error
 	if bucketName == "" {
-		//nolint
 		bucketName = "openssf-rekor-test"
 	}
-	bucket, err = pkg.NewBucket(bucketName)
-	if err != nil {
-		panic(err)
-	}
-
-	if data, ok := os.LookupEnv("RETRY"); ok {
-		retry, err = strconv.Atoi(data)
-		if err != nil {
-			panic(fmt.Errorf("RETRY must be an integer %w", err))
-		}
-	}
-	if tableName == "" {
-		//nolint
-		tableName = "rekor_test"
-	}
 	rekor = pkg.NewTLog(url)
-	start := int64(0)
-	end, err := rekor.Size()
-	fmt.Println("end", end)
-	counter := 10
-	if z != "" {
-		counter, err = strconv.Atoi(z)
+	if end == 0 {
+		end, err = rekor.Size()
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("failed to get the size of the rekor log %w", err)
 		}
 	}
-	if err != nil {
-		panic(err)
-	}
-	if x != "" {
-		start, err = strconv.ParseInt(x, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if y != "" {
-		end, err = strconv.ParseInt(y, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-	}
-	// three consumers
-	wg := sync.WaitGroup{}
-	wg.Add(counter)
-	var ch = make(chan int64)
 
-	//consumer
-	for i := 0; i < counter; i++ {
+	bucket, err := pkg.NewBucket(bucketName)
+	if err != nil {
+		return fmt.Errorf("failed to create bucket %w", err)
+	}
+	wg := sync.WaitGroup{}
+	wg.Add(concurrency)
+	var ch = make(chan int)
+
+	// consumer
+	for i := 0; i < concurrency; i++ {
 		go func() {
 			for i := range ch {
 				GetRekorEntry(rekor, i, tableName, bucket)
@@ -94,7 +144,7 @@ func main() {
 		}()
 	}
 
-	//producer
+	// producer
 	go func() {
 		for i := start; i <= end; i++ {
 			ch <- i
@@ -103,11 +153,11 @@ func main() {
 	}()
 
 	wg.Wait()
-
+	return nil
 }
 
 // GetRekorEntry gets the rekor entry and updates the table
-func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket) {
+func GetRekorEntry(rekor pkg.TLog, i int, tableName string, bucket pkg.Bucket) {
 	var wg sync.WaitGroup
 	data, err := rekor.Entry(i)
 	if retry > 0 && err != nil {
@@ -118,14 +168,14 @@ func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket)
 		}
 	}
 	wg.Add(2)
-	go func(i int64) {
+	go func(i int) {
 		defer wg.Done()
 		err := pkg.Insert(data, tableName)
 		if err != nil {
 			handleErr(fmt.Errorf("failed to insert entry %d %w", i, err))
 		}
 	}(i)
-	go func(i int64) {
+	go func(i int) {
 		defer wg.Done()
 		err := bucket.UpdateBucket(data)
 		if err != nil {

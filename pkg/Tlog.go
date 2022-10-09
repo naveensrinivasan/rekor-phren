@@ -26,7 +26,7 @@ func NewTLog(host string) TLog {
 }
 
 // Size returns the size of the last entry.
-func (t *tlog) Size() (int64, error) {
+func (t *tlog) Size() (int, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/log", t.host), nil)
 	if err != nil {
 		return 0, err
@@ -49,7 +49,7 @@ func (t *tlog) Size() (int64, error) {
 }
 
 // Entry returns the entry from the given tlogEntry.
-func (t *tlog) Entry(index int64) (Entry, error) {
+func (t *tlog) Entry(index int) (Entry, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", t.host, index))
 	if err != nil {
 		return Entry{}, err
