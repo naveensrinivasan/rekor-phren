@@ -5,7 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/bigquery v1.42.0
 	cloud.google.com/go/storage v1.27.0
-	github.com/urfave/cli/v2 v2.20.2
+	github.com/urfave/cli/v2 v2.20.3
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 )
 
