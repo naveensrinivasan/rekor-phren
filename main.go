@@ -62,7 +62,7 @@ func main() {
 				Name:        "rekor-url",
 				Aliases:     []string{"u"},
 				Value:       url,
-				DefaultText: "https://api.rekor.sigstore.dev",
+				DefaultText: "https://rekor.sigstore.dev",
 				Destination: &url,
 				EnvVars: []string{
 					"REKOR_URL",
