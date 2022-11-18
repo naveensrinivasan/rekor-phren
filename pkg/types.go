@@ -64,14 +64,17 @@ type importHashedrekord struct {
 }
 
 type tlog struct {
-	TreeSize int `json:"treeSize"`
-	host     string
+	TreeSize       int64 `json:"treeSize"`
+	host           string
+	InactiveShards []struct {
+		TreeSize int64 `json:"treeSize"`
+	} `json:"inactiveShards"`
 }
 
 // TLog holds current root hash and size of the merkle tree used to store the log entries.
 type TLog interface {
-	Size() (int, error)
-	Entry(index int) (Entry, error)
+	Size() (int64, error)
+	Entry(index int64) (Entry, error)
 }
 type RekordData struct {
 	Hash RekorDataHash `json:"hash"`

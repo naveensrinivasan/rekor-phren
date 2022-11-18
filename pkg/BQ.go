@@ -3,16 +3,18 @@ package pkg
 import (
 	"cloud.google.com/go/bigquery"
 	"context"
+	"errors"
 	"fmt"
+	"google.golang.org/api/iterator"
 )
 
 // CreateOrUpdateSchema creates a new table in BigQuery. The func detects the project ID from the credentials.
-func CreateOrUpdateSchema(entry Entry, dataset string) error {
+func CreateOrUpdateSchema(entry Entry, dataset, table string) error {
 	if dataset == "" {
 		return fmt.Errorf("dataset is required")
 	}
 	ctx := context.Background()
-	client, err := bigquery.NewClient(ctx, bigquery.DetectProjectID)
+	client, err := bigquery.NewClient(ctx, "openssf")
 	if err != nil {
 		return err
 	}
@@ -40,18 +42,18 @@ func CreateOrUpdateSchema(entry Entry, dataset string) error {
 			return err
 		}
 	} else {
-		if err := UpdateTableSchema(entry, dataset); err != nil {
+		if err := UpdateTableSchema(entry, dataset, table); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func UpdateTableSchema(entry Entry, dataset string) error {
+func UpdateTableSchema(entry Entry, dataset, table string) error {
 	if dataset == "" {
 		return fmt.Errorf("dataset is required")
 	}
 	ctx := context.Background()
-	client, err := bigquery.NewClient(ctx, bigquery.DetectProjectID)
+	client, err := bigquery.NewClient(ctx, "openssf")
 	if err != nil {
 		return err
 	}
@@ -60,7 +62,7 @@ func UpdateTableSchema(entry Entry, dataset string) error {
 		return err
 	}
 	s = s.Relax()
-	tableRef := client.Dataset(dataset).Table(dataset)
+	tableRef := client.Dataset(dataset).Table(table)
 	update := bigquery.TableMetadataToUpdate{
 		Schema: s,
 	}
@@ -69,18 +71,46 @@ func UpdateTableSchema(entry Entry, dataset string) error {
 	}
 	return nil
 }
-func Insert(entry Entry, dataset string) error {
+func Insert(entry Entry, dataset, table string) error {
 	if dataset == "" {
 		return fmt.Errorf("dataset is required")
 	}
 	ctx := context.Background()
-	client, err := bigquery.NewClient(ctx, bigquery.DetectProjectID)
+	client, err := bigquery.NewClient(ctx, "openssf")
 	if err != nil {
 		return err
 	}
-	inserter := client.Dataset(dataset).Table(dataset).Inserter()
+	inserter := client.Dataset(dataset).Table(table).Inserter()
 	if err := inserter.Put(ctx, entry); err != nil {
 		return err
 	}
 	return nil
+}
+func GetLastEntry(dataset, table string) (int64, error) {
+	if dataset == "" {
+		return 0, fmt.Errorf("dataset is required")
+	}
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, "openssf")
+	if err != nil {
+		return 0, fmt.Errorf("bigquery.NewClient: %w", err)
+	}
+	q := client.Query(fmt.Sprintf("SELECT max(logindex) FROM `openssf.%s.%s` LIMIT 1", dataset, table))
+	it, err := q.Read(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("Query.Read: %w", err)
+	}
+	var max int64
+	for {
+		var values []bigquery.Value
+		err := it.Next(&values)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return 0, fmt.Errorf("Iterator.Next: %w", err)
+		}
+		max = values[0].(int64)
+	}
+	return max, nil
 }

@@ -25,8 +25,16 @@ func NewTLog(host string) TLog {
 	return &tlog{host: host}
 }
 
+type LogSize struct {
+	InactiveShards []struct {
+		TreeSize int `json:"treeSize"`
+	} `json:"inactiveShards"`
+	TreeSize int `json:"treeSize"`
+}
+
 // Size returns the size of the last entry.
-func (t *tlog) Size() (int, error) {
+func (t *tlog) Size() (int64, error) {
+	var size int64
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/log", t.host), nil)
 	if err != nil {
 		return 0, err
@@ -45,11 +53,14 @@ func (t *tlog) Size() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return log.TreeSize, nil
+	for _, v := range log.InactiveShards {
+		size += v.TreeSize
+	}
+	return size + log.TreeSize, nil
 }
 
 // Entry returns the entry from the given tlogEntry.
-func (t *tlog) Entry(index int) (Entry, error) {
+func (t *tlog) Entry(index int64) (Entry, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", t.host, index))
 	if err != nil {
 		return Entry{}, err

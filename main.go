@@ -2,32 +2,35 @@ package main
 
 import (
 	"fmt"
-	"github.com/naveensrinivasan/rekor-phren/pkg"
-	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/naveensrinivasan/rekor-phren/pkg"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	retry      = 5
-	e          *log.Logger
-	tableName  = "rekor_test"
-	bucket     pkg.Bucket
-	rekor      pkg.TLog
-	url        string
-	bucketName = "openssf-rekor-test"
+	retry             = 5
+	e                 *log.Logger
+	tableName         = "rekor_test"
+	bucket            pkg.Bucket
+	rekor             pkg.TLog
+	url               string
+	bucketName        = "openssf-rekor-test"
+	dataset           = "rekor_test"
+	startFromLeftOver = false
 )
 
 func main() {
-	start, end, concurrency := 0, 0, 10
+	start, end, concurrency := int64(0), int64(0), 10
 	e = log.New(os.Stdout, "", 0)
 
 	app := &cli.App{
 		Name:  "rekor-phren is a tool to update the BigQuery table and the bucket with the rekor entries",
 		Usage: "rekor-phren update -u <rekor url> -b <bucket name> -t <table name> -s <start> -e <end> -c <concurrency>",
 		Flags: []cli.Flag{
-			&cli.IntFlag{
+			&cli.Int64Flag{
 				Name:        "start-index",
 				DefaultText: "0",
 				Aliases:     []string{"s"},
@@ -37,7 +40,7 @@ func main() {
 					"PHREN_START",
 				},
 			},
-			&cli.IntFlag{
+			&cli.Int64Flag{
 				Name:        "end-index",
 				Aliases:     []string{"e"},
 				Destination: &end,
@@ -75,6 +78,15 @@ func main() {
 				},
 			},
 			&cli.StringFlag{
+				Name:        "bigquery-dataset",
+				Aliases:     []string{"d"},
+				Value:       dataset,
+				Destination: &dataset,
+				EnvVars: []string{
+					"PHREN_DATASET",
+				},
+			},
+			&cli.StringFlag{
 				Name:        "gcs-bucket-name",
 				Aliases:     []string{"b"},
 				DefaultText: "openssf-rekor-test",
@@ -94,6 +106,16 @@ func main() {
 					"PHREN_RETRY",
 				},
 			},
+			&cli.BoolFlag{
+				Name:        "start-from-left-over",
+				Aliases:     []string{"l"},
+				Value:       startFromLeftOver,
+				DefaultText: "false",
+				Destination: &startFromLeftOver,
+				EnvVars: []string{
+					"PHREN_START_FROM_LEFT_OVER",
+				},
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -101,6 +123,14 @@ func main() {
 				Usage:       "update -u <rekor url> -b <bucket name> -t <table name> -s <start> -e <end> -c <concurrency>",
 				Description: "This command updates the BigQuery table and the bucket with the rekor entries. ",
 				Action: func(c *cli.Context) error {
+					if startFromLeftOver {
+						lastentry, err := pkg.GetLastEntry(tableName, dataset)
+						if err != nil {
+							e.Printf("failed to get last entry %v", err)
+							return err
+						}
+						start = lastentry
+					}
 					update(end, concurrency, start)
 					return nil
 				},
@@ -113,7 +143,7 @@ func main() {
 	}
 }
 
-func update(end int, concurrency int, start int) error {
+func update(end int64, concurrency int, start int64) error {
 	var err error
 	if bucketName == "" {
 		bucketName = "openssf-rekor-test"
@@ -132,7 +162,7 @@ func update(end int, concurrency int, start int) error {
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(concurrency)
-	var ch = make(chan int)
+	var ch = make(chan int64)
 
 	// consumer
 	for i := 0; i < concurrency; i++ {
@@ -157,7 +187,7 @@ func update(end int, concurrency int, start int) error {
 }
 
 // GetRekorEntry gets the rekor entry and updates the table
-func GetRekorEntry(rekor pkg.TLog, i int, tableName string, bucket pkg.Bucket) {
+func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket) {
 	var wg sync.WaitGroup
 	data, err := rekor.Entry(i)
 	if retry > 0 && err != nil {
@@ -168,14 +198,14 @@ func GetRekorEntry(rekor pkg.TLog, i int, tableName string, bucket pkg.Bucket) {
 		}
 	}
 	wg.Add(2)
-	go func(i int) {
+	go func(i int64) {
 		defer wg.Done()
-		err := pkg.Insert(data, tableName)
+		err := pkg.Insert(data, dataset, tableName)
 		if err != nil {
 			handleErr(fmt.Errorf("failed to insert entry %d %w", i, err))
 		}
 	}(i)
-	go func(i int) {
+	go func(i int64) {
 		defer wg.Done()
 		err := bucket.UpdateBucket(data)
 		if err != nil {
