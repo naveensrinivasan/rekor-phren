@@ -5,7 +5,7 @@
 *.so
 *.dylib
 .idea
-./rekor-phren
+rekor-phren
 
 # Test binary, built with `go test -c`
 *.test

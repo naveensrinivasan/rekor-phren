@@ -1,0 +1,14 @@
+#k8s job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren
+spec:
+    template:
+        spec:
+            containers:
+            - name: phren
+              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:5937c280a28ef90061eefb51b18a83d2ee02209d535d0bad803e75974c9826c3
+              imagePullPolicy: Always
+              command: ["./phren", "ci"]
+            restartPolicy: Never

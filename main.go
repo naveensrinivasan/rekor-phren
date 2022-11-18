@@ -124,7 +124,7 @@ func main() {
 				Description: "This command updates the BigQuery table and the bucket with the rekor entries. ",
 				Action: func(c *cli.Context) error {
 					if startFromLeftOver {
-						lastentry, err := pkg.GetLastEntry(tableName, dataset)
+						lastentry, err := pkg.GetLastEntry(dataset, tableName)
 						if err != nil {
 							e.Printf("failed to get last entry %v", err)
 							return err
