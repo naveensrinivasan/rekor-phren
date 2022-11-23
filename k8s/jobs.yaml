@@ -1,4 +1,4 @@
-#k8s job
+##k8s job
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -8,7 +8,111 @@ spec:
         spec:
             containers:
             - name: phren
-              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:5937c280a28ef90061eefb51b18a83d2ee02209d535d0bad803e75974c9826c3
+              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
               imagePullPolicy: Always
-              command: ["./phren", "ci"]
+              command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","10000","--end-index","1000000",
+                        "--concurrency-level-update","10","update"]
             restartPolicy: Never
+            serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-1
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","1000000", "--end-index","2000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-3
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","2000000", "--end-index","3000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-4
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","3000000", "--end-index","4000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-5
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","4000000", "--end-index","5000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-6
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","5000000", "--end-index","6000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren-7
+spec:
+  template:
+    spec:
+      containers:
+        - name: phren
+          image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:664dd436f729240ea13f3f8ddc5dd0d055b1a81ab1ad8e010d2074e7506a3155
+          imagePullPolicy: Always
+          command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-index","6000000",
+                    "--concurrency-level-update","10","update"]
+      restartPolicy: Never
+      serviceAccountName: phren
+---
+##service account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: phren

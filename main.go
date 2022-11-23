@@ -130,7 +130,15 @@ func main() {
 							return err
 						}
 						start = lastentry
+					} else if end == 0 { // if end is not set, get the latest entry
+						var err error
+						end, err = pkg.NewTLog(url).Size()
+						if err != nil {
+							e.Printf("failed to get the size of the log %v", err)
+							return err
+						}
 					}
+					log.Println("start", start, "end", end, "concurrency", concurrency)
 					update(end, concurrency, start)
 					return nil
 				},
