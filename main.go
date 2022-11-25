@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/naveensrinivasan/rekor-phren/pkg"
 	"github.com/urfave/cli/v2"
@@ -130,7 +131,9 @@ func main() {
 							return err
 						}
 						start = lastentry
-					} else if end == 0 { // if end is not set, get the latest entry
+						log.Println("start from last entry", start)
+					}
+					if end == 0 { // if end is not set, get the latest entry
 						var err error
 						end, err = pkg.NewTLog(url).Size()
 						if err != nil {
@@ -212,10 +215,20 @@ func GetRekorEntry(rekor pkg.TLog, i int64, tableName string, bucket pkg.Bucket)
 		if err != nil {
 			handleErr(fmt.Errorf("failed to insert entry %d %w", i, err))
 		}
+		time.Sleep(5 * time.Second)
+		err = pkg.Insert(data, dataset, tableName)
+		if err != nil {
+			handleErr(fmt.Errorf("failed to insert entry %d %w", i, err))
+		}
 	}(i)
 	go func(i int64) {
 		defer wg.Done()
 		err := bucket.UpdateBucket(data)
+		if err != nil {
+			handleErr(fmt.Errorf("failed to update bucket %d %w", i, err))
+		}
+		time.Sleep(5 * time.Second)
+		err = bucket.UpdateBucket(data)
 		if err != nil {
 			handleErr(fmt.Errorf("failed to update bucket %d %w", i, err))
 		}
