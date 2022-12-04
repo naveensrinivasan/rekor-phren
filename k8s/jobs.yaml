@@ -8,7 +8,7 @@ spec:
         spec:
             containers:
             - name: phren-job
-              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:4a52ce50e4e240b84d69e04f87d3df684f03a21640cb9229bd4fe8f63b1afc43
+              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:0ae36188c87d04ad2def65d3ff37d6d811822d6af41be35c148b69b094dda717
               imagePullPolicy: Always
               command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-from-left-over=true",
                         "--concurrency-level-update","10","update"]
