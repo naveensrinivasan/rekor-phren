@@ -1,0 +1,63 @@
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: phren
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: phren
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: phren
+subjects:
+- kind: ServiceAccount
+  name: phren
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: phren
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: phren
+  namespace: default
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: phren
+subjects:
+- kind: ServiceAccount
+  name: phren
+  namespace: default
+---
+# create a k8s job with this service account and the container image is gcr.io/openssf/missingentries-95c8d2db79d24203c9fc7b8bee5caa56@sha256:7e6beef8ba2725547d294560c30115fb7c9ac2d8ae0350caa3e7b97bb86fb347
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: phren
+spec:
+    template:
+        spec:
+          containers:
+          - name: phren
+            image: gcr.io/openssf/missingentries-95c8d2db79d24203c9fc7b8bee5caa56@sha256:0e813c51454da769667dfd76d2c4d11f921187afe3d5b254e97d2fbf10c25356
+            imagePullPolicy: Always
+            command: ["missingentries"]
+          restartPolicy: Never
+          serviceAccountName: phren
+    backoffLimit: 4

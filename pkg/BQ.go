@@ -114,3 +114,37 @@ func GetLastEntry(dataset, table string) (int64, error) {
 	}
 	return max, nil
 }
+
+// GetMissingEntries returns the missing entries from the BigQuery table.
+// This will be used to fill the missing entries in the BigQuery table by rerunning the missing entries as cron job.
+func GetMissingEntries(dataset, table string) ([]int64, error) {
+	query := " SELECT DISTINCT LogIndex +1 FROM `openssf.%s.%s` WHERE LogIndex + 1 NOT IN ( SELECT DISTINCT LogIndex FROM `openssf.%s.%s` );"
+	if dataset == "" {
+		return nil, fmt.Errorf("dataset is required")
+	}
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, "openssf")
+	if err != nil {
+		return nil, fmt.Errorf("bigquery.NewClient: %w", err)
+	}
+	q := client.Query(fmt.Sprintf(query, dataset, table, dataset, table))
+
+	it, err := q.Read(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Query.Read: %w", err)
+	}
+	var missing []int64
+	//page through the results
+	for {
+		var values []bigquery.Value
+		err := it.Next(&values)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Iterator.Next: %w", err)
+		}
+		missing = append(missing, values[0].(int64))
+	}
+	return missing, nil
+}

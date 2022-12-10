@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-//nolint:funlen
 func main() {
 	var datasetName, tableName string
 	datasetName = "phren"
