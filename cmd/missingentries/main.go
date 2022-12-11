@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -37,11 +38,15 @@ func main() {
 			panic(err)
 		}
 		if len(missing) == 0 {
-			fmt.Println("all entries are present")
+			log.Println("No missing entries found")
 			return
 		}
-		for _, id := range missing {
+		for i, id := range missing {
 			createJob(int(id))
+			if i%100 == 0 {
+				log.Println("exiting after 100 jobs")
+				break
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}

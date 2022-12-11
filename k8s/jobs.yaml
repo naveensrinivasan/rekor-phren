@@ -1,17 +1,21 @@
-##k8s job
 apiVersion: batch/v1
-kind: Job
+kind: CronJob
 metadata:
   name: phren
 spec:
-    template:
+  schedule: "0 5 * * *"
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 6000
+      parallelism: 1
+      completions: 1
+      template:
         spec:
-            containers:
-            - name: phren-job
-              image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:0ae36188c87d04ad2def65d3ff37d6d811822d6af41be35c148b69b094dda717
-              imagePullPolicy: Always
-              command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-from-left-over=true",
-                        "--concurrency-level-update","10","update"]
-            restartPolicy: Never
-            serviceAccountName: phren
-
+          containers:
+          - name: phren
+            image: gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:0ae36188c87d04ad2def65d3ff37d6d811822d6af41be35c148b69b094dda717
+            imagePullPolicy: Always
+            command: ["rekor-phren", "--bigquery-dataset", "phren","--bigquery-table-name", "rekor","--rekor-url","http://10.117.1.69", "--start-from-left-over=true",
+                      "--concurrency-level-update","10","update"]
+          restartPolicy: Never
+          serviceAccountName: phren
