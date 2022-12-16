@@ -1,0 +1,24 @@
+# This cron job will run every hour and runs the check if there are any missing entries that needs to be synced from the
+# rekor server to the BigQuery table.
+# This will run cmd/scan/main.go
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduled-scans
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      parallelism: 1
+      completions: 1
+      template:
+        spec:
+          containers:
+          - name: scan
+            image: gcr.io/openssf/scan-2087199e96f992a05c47049d7b27c0ba@sha256:c4e3688576bdd967baa1f6878edf90e81f2397cef7eef2e0f487071252f00dc0
+            imagePullPolicy: Always
+            command: ["scan"]
+          restartPolicy: Never
+          serviceAccountName: phren

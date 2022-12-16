@@ -1,0 +1,36 @@
+# We need a shell for a lot of redirection/piping to work
+defaultBaseImage: gcr.io/distroless/base:debug-nonroot
+
+builds:
+  - id: phren-scan
+    dir: .
+    main: ./cmd/scan
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: phren
+    dir: .
+    main: .
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: phren-missingentries
+    dir: .
+    main: ./cmd/missingentries
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - "{{ .Env.LDFLAGS }}"
