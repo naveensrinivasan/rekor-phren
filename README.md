@@ -8,11 +8,12 @@ store it in BigQuery.
 ```mermaid
 graph TD
     A[phren] -->|Gets a specific rekor entry| B(rekor server)
-    B --> C{Decides what type it is}
+    B --> K[entry]
+    K --> C{what type it is?}
     C -->|decode| D[rekord]
     C -->|decode| E[hashedrekord]
     C -->|decode| F[intoto]
-    D -->G{Decide what type of public key}
+    D -->G{what type of pulic key}
     G -->|decode| H[pgp]
     G -->|decode| I[x509]
     E -->|decode| I[x509]
