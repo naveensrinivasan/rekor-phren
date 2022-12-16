@@ -27,8 +27,8 @@ metadata:
   name: phren
   namespace: default
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
+- apiGroups: ["batch"]
+  resources: ["pods","jobs"]
   verbs: ["get", "list", "watch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

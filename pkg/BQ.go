@@ -8,6 +8,16 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+type Phren interface {
+	GetLastEntry(dataset, table string) (int64, error)
+}
+type phren struct {
+}
+
+func New() Phren {
+	return &phren{}
+}
+
 // CreateOrUpdateSchema creates a new table in BigQuery. The func detects the project ID from the credentials.
 func CreateOrUpdateSchema(entry Entry, dataset, table string) error {
 	if dataset == "" {
@@ -86,7 +96,9 @@ func Insert(entry Entry, dataset, table string) error {
 	}
 	return nil
 }
-func GetLastEntry(dataset, table string) (int64, error) {
+
+// GetLastEntry returns the last entry from the BigQuery table.
+func (p phren) GetLastEntry(dataset, table string) (int64, error) {
 	if dataset == "" {
 		return 0, fmt.Errorf("dataset is required")
 	}

@@ -1,6 +1,6 @@
 # We need a shell for a lot of redirection/piping to work
 defaultBaseImage: gcr.io/distroless/base:debug-nonroot
-
+KO_DOCKER_REPO: gcr.io/openssf/phren
 builds:
   - id: phren-scan
     dir: .

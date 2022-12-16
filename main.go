@@ -27,6 +27,15 @@ func main() {
 	start, end, concurrency := int64(0), int64(0), 10
 	e = log.New(os.Stdout, "", 0)
 
+	app := handleCLI(start, end, concurrency)
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// handleCLI handles the cli commands
+func handleCLI(start int64, end int64, concurrency int) *cli.App {
 	app := &cli.App{
 		Name:  "rekor-phren is a tool to update the BigQuery table and the bucket with the rekor entries",
 		Usage: "rekor-phren update -u <rekor url> -b <bucket name> -t <table name> -s <start> -e <end> -c <concurrency>",
@@ -125,7 +134,7 @@ func main() {
 				Description: "This command updates the BigQuery table and the bucket with the rekor entries. ",
 				Action: func(c *cli.Context) error {
 					if startFromLeftOver {
-						lastentry, err := pkg.GetLastEntry(dataset, tableName)
+						lastentry, err := pkg.New().GetLastEntry(dataset, tableName)
 						if err != nil {
 							e.Printf("failed to get last entry %v", err)
 							return err
@@ -148,12 +157,10 @@ func main() {
 			},
 		},
 	}
-
-	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
-	}
+	return app
 }
 
+// update updates the BigQuery table and the bucket with the rekor entries.
 func update(end int64, concurrency int, start int64) error {
 	var err error
 	if bucketName == "" {

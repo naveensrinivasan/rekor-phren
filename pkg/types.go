@@ -137,3 +137,7 @@ type Kind struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 }
+type Tlog interface {
+	Size() (int64, error)
+	Entry(index int64) (Entry, error)
+}
