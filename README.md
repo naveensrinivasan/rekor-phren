@@ -18,6 +18,11 @@ graph TD
     G -->|decode| I[x509]
     E -->|decode| I[x509]
     F -->|decode| I[x509]
+    C -->|decode| J[Other]
+    J -->|store| L[BigQuery/GCPBuckets]
+    I -->|store| L[BigQuery/GCPBuckets]
+    H -->|store| L[BigQuery/GCPBuckets]
+    
 ```
 
 The rekor-phren takes the rekor data and does some ETL on it to make it easier to work with.
