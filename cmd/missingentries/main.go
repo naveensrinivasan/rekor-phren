@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/urfave/cli/v2"
+
 	"github.com/naveensrinivasan/rekor-phren/pkg"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,33 +24,50 @@ import (
 )
 
 func main() {
-	// This checks for missing entries and creates jobs to update them.
-	// These items could be missing because of a failure in the previous run.
-	// This creates a k8s job for each missing entry.
-	args := os.Args
-	dataset := "phren"
-	tableName := "phren"
-	if len(args) > 3 {
-		dataset = args[1]
-		tableName = args[2]
-	}
-	for {
-		missing, err := pkg.GetMissingEntries(dataset, tableName)
-		if err != nil {
-			panic(err)
-		}
-		if len(missing) == 0 {
-			log.Println("No missing entries found")
-			return
-		}
-		for i, id := range missing {
-			createJob(int(id))
-			if i%100 == 0 {
-				log.Println("exiting after 100 jobs")
-				break
+	app := &cli.App{
+		Name: "missing-entries",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "dataset",
+				Usage:   "Name of the dataset",
+				Value:   "phren",
+				EnvVars: []string{"DATASET"},
+			},
+			&cli.StringFlag{
+				Name:    "table",
+				Usage:   "Name of the table",
+				Value:   "phren",
+				EnvVars: []string{"TABLE"},
+			},
+		},
+		Action: func(c *cli.Context) error {
+			dataset := c.String("dataset")
+			tableName := c.String("table")
+
+			missing, err := pkg.GetMissingEntries(dataset, tableName)
+			if err != nil {
+				return err
 			}
-		}
-		time.Sleep(5 * time.Second)
+			if len(missing) == 0 {
+				log.Println("No missing entries found")
+				return nil
+			}
+			fmt.Println(missing)
+			for i, id := range missing {
+				createJob(int(id))
+				if i%100 == 0 {
+					log.Println("exiting after 100 jobs")
+					break
+				}
+			}
+			time.Sleep(5 * time.Second)
+			return nil
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 func buildConfig(kubeconfig string) (*rest.Config, error) {
@@ -71,6 +90,7 @@ func createJob(id int) {
 		panic(err.Error())
 	}
 	jobsClient := clientset.BatchV1().Jobs("default")
+	const image = "gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:4a52ce50e4e240b84d69e04f87d3df684f03a21640cb9229bd4fe8f63b1afc43"
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("job-%d", id),
@@ -81,9 +101,11 @@ func createJob(id int) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:    "test",
-							Image:   "gcr.io/openssf/rekor-phren-c5fc4a6e85fec69cce84b35fd28b14cc@sha256:4a52ce50e4e240b84d69e04f87d3df684f03a21640cb9229bd4fe8f63b1afc43",
-							Command: []string{"rekor-phren", "--bigquery-dataset", "phren", "--bigquery-table-name", "rekor", "--rekor-url", "http://10.117.1.69", "--start-index", fmt.Sprintf("%d", id), "--end-index", fmt.Sprintf("%d", id+1), "update"},
+							Name:  "test",
+							Image: image,
+							Command: []string{"rekor-phren", "--bigquery-dataset", "phren", "--bigquery-table-name",
+								"rekor", "--rekor-url", "http://10.117.1.69", "--start-index", fmt.Sprintf("%d", id),
+								"--end-index", fmt.Sprintf("%d", id+1), "update"},
 						},
 					},
 					RestartPolicy:      corev1.RestartPolicyNever,

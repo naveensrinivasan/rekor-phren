@@ -139,7 +139,8 @@ func GetMissingEntries(dataset, table string) ([]int64, error) {
 		"GENERATE_ARRAY(5000001, 6000000)," +
 		"GENERATE_ARRAY(6000001, 7000000)," +
 		"GENERATE_ARRAY(7000001, 8000000)," +
-		"GENERATE_ARRAY(8000001, (select max(logindex) from `openssf.%s.%s`)))) " +
+		"GENERATE_ARRAY(8000001, 9000000)," +
+		"GENERATE_ARRAY(9000001, (select max(logindex) from `openssf.%s.%s`)))) " +
 		"date EXCEPT DISTINCT " +
 		"SELECT logindex FROM `openssf.%s.%s`;"
 	if dataset == "" {
