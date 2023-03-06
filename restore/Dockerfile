@@ -18,7 +18,7 @@ COPY invoke.go ./
 # Build the binary.
 RUN go build -mod=readonly -v -o server
 
-FROM google/cloud-sdk@sha256:d07ec17c1e737633a5487579bef51c346b0674cc44b137b00e4599d7bc8b1753
+FROM google/cloud-sdk@sha256:bced995458d1291e4f2deac06ace0f47563f0cda7b92b7c4decf6b6090f82a73
 RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends \
     ca-certificates && \
